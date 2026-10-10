@@ -1,0 +1,16 @@
+/CopiaSeguridad/*
+/Datos/*
+model.h5
+resnext-101-32x8d.pth
+fully_supervised_model_strongly.pt
+pruebaViewer/openslide-python
+/media/*
+/TOSHIBA/*
+/Predicciones_Guardadas/*
+/Matrices_Generadas/
+vscode-server.tar.gz
+InstalacionVSServer.txt
+/EXT/
+/models/*
+__pycache__/
+*.pyc
