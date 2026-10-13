@@ -1,0 +1,27 @@
+# Deep learning
+# torch < 2.6: from 2.6 on, torch.load uses weights_only=True by default and cannot load the
+# DenseNet121 models, which were saved as complete objects
+torch>=1.8,<2.6
+torchvision>=0.9
+
+# Whole-slide images (also requires the OpenSlide C library, e.g. apt-get install openslide-tools)
+openslide-python>=1.1
+
+# Image processing and tissue detection
+numpy>=1.18,<2
+scipy>=1.4
+scikit-image>=0.17
+Pillow>=8.0
+opencv-python>=4.5
+
+# Annotations and predictions
+shapely>=1.7
+geojson>=2.5
+
+# Optional: stain normalization (only if STAIN_REFERENCE_IMAGE is set in config.py)
+# staintools>=2.1
+# spams
+
+# Figures
+matplotlib>=3.4
+seaborn>=0.11

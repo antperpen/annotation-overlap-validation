@@ -1,20 +1,3 @@
-## Student model based on ResNeXt-101 32x8d (weights from MicheleDamian/prostate-gleason-dataset)
-##
-## This file is the model module imported by run_PROMETEO.py. Every model file that can be
-## imported by run_PROMETEO.py must export the same common interface:
-##   - StudentModel : model class
-##   - build_model(device) : returns the loaded instance, in evaluation mode and on the device
-##   - predict(model, patch) : returns the tuple (logits, probabilities) for a patch
-##   - INPUT_SIZE  : input size expected by the network
-##   - TARGET_MPP  : micrometres per pixel of the images used to train the model
-##   - RESAMPLE    : filter used to rescale the patch to INPUT_SIZE (PIL.Image constant)
-##   - NORMALIZE   : (mean, std) used to normalize the input, or None if the weights were
-##                   trained with raw pixels in [0,1]
-##   - PATCH_SIZE  : size of the patch extracted from the WSI
-##   - STRIDE      : scanning stride used to extract the patches
-##   - N_CLASSES   : number of output Gleason grades
-##   - MODEL_WEIGHTS : path of the model weights
-
 import os
 
 import torch
@@ -25,7 +8,7 @@ from PIL import Image
 MODEL_WEIGHTS = 'models/resnext-101-32x8d.pth'
 # TARGET_MPP is the resolution of the training images (0.452-0.5032 um/px in the original
 # dataset, 0.48 um/px in the Radboud ones). It is used to choose the read layer of each WSI and to
-# adjust the patch size and the scanning stride (see resolve_extraction in run_PROMETEO.py)
+# adjust the patch size and the scanning stride (see resolve_extraction in run_validation.py)
 TARGET_MPP = 0.48
 PATCH_SIZE = 512
 OVERLAP = 256

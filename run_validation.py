@@ -28,7 +28,6 @@ import argparse
 from math import log
 
 
-import staintools
 from config import *
 
 # Settings
@@ -74,6 +73,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Gleason model: {GLEASON_MODEL}")
 student_model = load_student_model(GLEASON_MODEL)
 model = student_model.build_model(device)
+
+#Optional stain normalization with a reference image (STAIN_REFERENCE_IMAGE in config.py)
+stain_normalizer = None
+if STAIN_REFERENCE_IMAGE is not None:
+    import staintools
+    stain_normalizer = staintools.StainNormalizer(method='macenko')
+    stain_normalizer.fit(staintools.read_image(STAIN_REFERENCE_IMAGE))
 
 
 def _mpp_from_tiff_tags(properties):
@@ -152,11 +158,6 @@ def generateHeatmapValidation(WSI_path, val_object, probability_threshold = 0.7,
             features_gp4 = []
             features_gp5 = []
             imglayer = []
-            #Reference image to normalize the color of the WSIs
-
-            target = staintools.read_image(os.path.join(os.getcwd(),"EXT/SICAPV2", "16B0006668_Block_Region_3_10_13_xini_67790_yini_77884.jpg_4.png"))
-            normalizer = staintools.StainNormalizer(method='macenko')
-            normalizer.fit(target)
             if WSI_path.endswith(".mrxs") or WSI_path.endswith(".bif") or WSI_path.endswith(".tif") or WSI_path.endswith(".tiff"):
                 image = openslide.OpenSlide(WSI_path)
                 #Extraction geometry resolved in the validator
@@ -195,6 +196,8 @@ def generateHeatmapValidation(WSI_path, val_object, probability_threshold = 0.7,
                                     if score>= 0.7:
 
                                         # CNN prediction
+                                        if stain_normalizer is not None:
+                                            tile = stain_normalizer.transform(tile)
                                         preprocess = build_preprocess()
 
                                         patch = preprocess(tile).float()

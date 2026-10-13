@@ -1,30 +1,3 @@
-## Student model based on densenet121 with the backbone pretrained with SimCLR
-## (weights student_model_Teacher_Student_simclr_exp7.pt, Teacher_Student pipeline from Examode)
-##
-## This file is the model module imported by run_PROMETEO.py. Every model file that can be
-## imported by run_PROMETEO.py must export the same common interface:
-##   - StudentModel : model class
-##   - build_model(device) : returns the loaded instance, in evaluation mode and on the device
-##   - predict(model, patch) : returns the tuple (logits, probabilities) for a patch
-##   - INPUT_SIZE  : input size expected by the network
-##   - TARGET_MPP  : micrometres per pixel of the images used to train the model
-##   - RESAMPLE    : filter used to rescale the patch to INPUT_SIZE (PIL.Image constant)
-##   - NORMALIZE   : (mean, std) used to normalize the input, or None if the weights were
-##                   trained with raw pixels in [0,1]
-##   - PATCH_SIZE  : size of the patch extracted from the WSI
-##   - STRIDE      : scanning stride used to extract the patches
-##   - N_CLASSES   : number of output Gleason grades
-##   - MODEL_WEIGHTS : path of the model weights
-##
-## The architecture is identical to the one in StudentModel_densenet.py (same densenet121 backbone
-## and same embedding head); the difference lies in the pretraining of the backbone (self-supervised
-## SimCLR instead of ImageNet/from scratch, see Student_Inference_images.py in the Teacher_Student
-## repository) and in the loaded fine-tuning weights. It has been verified, by loading the
-## checkpoint, that the shape of its layers (embedding 1024->128, fc 128->4) matches this class.
-##
-## As in StudentModel_densenet, the model was saved complete with torch.save, so its inference
-## is done by calling the model with forward(x, None).
-
 import sys
 
 import torch

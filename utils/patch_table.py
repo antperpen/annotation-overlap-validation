@@ -1,20 +1,3 @@
-"""
-Table of patches per image with a 1% overlap from the ficheroImagenes.json file of a run of
-run_PROMETEO.py. For each image it gives:
-    - Number of patches: patches that fit in the whole image (layer 0) with the footprint and the
-      stride of the run, which are read from the name of the results folder
-      ({model}_{dataset}_{patch}_{stride}_{footprint})
-    - Patches with cancer cells: patches that cover the area annotated by the pathologist
-      ("número patches" in ficheroImagenes.json)
-    - ROI: annotated regions ("número de ROI" in ficheroImagenes.json)
-
-"Imagen N" is translated into the real file with utils/image_index.py, so config.py and the CSV of
-the dataset must be as in the run that generated the results.
-
-Usage (from the root of the project, with the WSIs accessible in the paths of config.py):
-    python3 utils/patch_table.py valme <results_folder>
-    python3 utils/patch_table.py panda <results_folder> --top 5 --mean
-"""
 import argparse
 import json
 import os
@@ -34,7 +17,6 @@ OVERLAP = 1
 
 
 def parse_geometry(results_dir):
-    """Returns (stride, footprint) in layer 0 pixels from the name of the results folder"""
     match = re.search(r'_(\d+)_(\d+)_(\d+)$', os.path.basename(os.path.normpath(results_dir)))
     if not match:
         raise ValueError("The results folder does not end in _{patch}_{stride}_{footprint}: " + results_dir)
@@ -42,7 +24,6 @@ def parse_geometry(results_dir):
 
 
 def count_image_patches(wsi_path, stride, footprint):
-    """Complete patches that fit in layer 0 of the WSI when it is scanned with the given stride and footprint"""
     width, height = openslide.OpenSlide(wsi_path).dimensions
     patches_x = (width - footprint) // stride + 1 if width >= footprint else 0
     patches_y = (height - footprint) // stride + 1 if height >= footprint else 0
@@ -50,7 +31,6 @@ def count_image_patches(wsi_path, stride, footprint):
 
 
 def load_overlap_results(results_dir, overlap):
-    """Returns {image number: (annotated patches, ROI)} of the given overlap in ficheroImagenes.json"""
     with open(os.path.join(results_dir, 'ficheroImagenes.json'), 'r', encoding='utf-8') as json_file:
         images_json = json.load(json_file)
     results = {}
@@ -62,7 +42,6 @@ def load_overlap_results(results_dir, overlap):
 
 
 def build_rows(dataset, results_dir):
-    """One row per analysed image: number, name, patches of the image, annotated patches and ROI"""
     stride, footprint = parse_geometry(results_dir)
     images = list_dataset_images(dataset)
     rows = []
@@ -80,12 +59,10 @@ def build_rows(dataset, results_dir):
 
 
 def mean_row(rows):
-    """Mean of the patches of the image, annotated patches and ROI of all the rows"""
     return {key: sum(row[key] for row in rows) / len(rows) for key in ('total', 'cancer', 'roi')}
 
 
 def print_table(rows, mean=None, num_images=None):
-    """Prints the table with the columns of the table of the article"""
     print(f"{'Image':>5} | {'Name':<34} | {'Number of patches':>17} | {'Patches with cancer cells':>25} | {'ROI':>5}")
     for row in rows:
         print(f"{row['image']:>5} | {row['name']:<34} | {row['total']:>17} | {row['cancer']:>25} | {row['roi']:>5}")
@@ -97,7 +74,7 @@ def print_table(rows, mean=None, num_images=None):
 def main():
     parser = argparse.ArgumentParser(description="Table of patches per image with a 1% overlap")
     parser.add_argument('dataset', choices=AVAILABLE_DATASETS)
-    parser.add_argument('results_dir', help="Results folder of run_PROMETEO.py with ficheroImagenes.json")
+    parser.add_argument('results_dir', help="Results folder of run_validation.py with ficheroImagenes.json")
     parser.add_argument('--top', type=int, help="Only the N images with the most patches in the whole image")
     parser.add_argument('--mean', action='store_true', help="Adds the mean of all the analysed images")
     args = parser.parse_args()

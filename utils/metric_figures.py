@@ -1,22 +1,3 @@
-"""
-Global metrics versus the overlap, with the style of utils/grade_figures.py, from the fichero.json
-file stored by run_PROMETEO.py in each results folder {model}_{dataset}_{patch}_{stride}_{footprint}.
-They are the same four metrics as in grafica_solape_acierto.png:
-    - Accuracy: correctly classified patches over evaluable patches ("porcentaje acierto")
-    - ROI covered: covered ROIs over annotated ROIs ("porcentaje ROI cubiertos")
-    - Exact grade: correctly classified patches with the exact Gleason grade over correctly
-      classified patches ("porcentaje patches con grado gleason acertado")
-    - DSC: mean value of the Dice coefficient of the images, which compares the patches accepted at
-      each overlap with the whole annotated tissue (cells with a 1% overlap). It is calculated from
-      the "porcentaje DSC" of ficheroImagenes.json; the images without annotated tissue ("N/A") do
-      not count, and those left without patches at an overlap count with a DSC of 0
-
-Generates one figure per model with its datasets side by side ({model}_metricas.png): centered
-titles and, instead of a legend, the name of each metric at the end of its line.
-
-Usage (from the root of the project):
-    python3 utils/metric_figures.py <resultados_analisis_folder> <output_folder>
-"""
 import argparse
 import json
 import math
@@ -57,12 +38,6 @@ LABEL_CEILING = 1.0
 
 
 def place_labels(positions, min_gap, floor, ceiling):
-    """
-    Height of each end-of-line label: as close as possible to the end of its line, within
-    [floor, ceiling] and separated at least min_gap. Only the labels that collide are moved, so
-    that a tight group at the top does not drag the labels that are further down.
-    positions: [(y, key)]; returns {key: label_y}
-    """
     # If several labels end up at the same limit (floor or ceiling), the tie is broken by the real
     # value of their line so that the order of the labels matches the order of the lines
     ordered = sorted((min(max(y, floor), ceiling), y, key) for y, key in positions)
@@ -76,10 +51,6 @@ def place_labels(positions, min_gap, floor, ceiling):
 
 
 def mean_dsc_per_overlap(results_dir, overlaps):
-    """
-    Mean DSC at each overlap with the images that have a defined DSC (those without annotated tissue
-    even with a 1% overlap have it as "N/A" and do not count). NaN if none is left
-    """
     with open(os.path.join(results_dir, 'ficheroImagenes.json'), 'r', encoding='utf-8') as json_file:
         images_json = json.load(json_file)
     values = {overlap: [] for overlap in overlaps}
@@ -91,7 +62,6 @@ def mean_dsc_per_overlap(results_dir, overlaps):
 
 
 def load_global_metrics(results_dir):
-    """Returns (overlaps, {metric key: [value at each overlap]})"""
     with open(os.path.join(results_dir, 'fichero.json'), 'r', encoding='utf-8') as json_file:
         rows = sorted(json.load(json_file), key=lambda row: row["porcentaje solape"])
     overlaps = [row["porcentaje solape"] for row in rows]
@@ -101,7 +71,6 @@ def load_global_metrics(results_dir):
 
 
 def draw_metric_axes(ax, results_dir, title, ylabel):
-    """Draws in ax the global metrics versus the overlap, with their name at the end of each line"""
     overlaps, values = load_global_metrics(results_dir)
     line_ends = []
     for key, label, color in METRICS:

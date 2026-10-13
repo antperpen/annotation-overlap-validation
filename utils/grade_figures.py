@@ -1,28 +1,3 @@
-"""
-Evolution of the accuracy per Gleason grade versus the overlap calculated image by image, from the
-ficheroImagenes.json files of run_PROMETEO.py. The figure grafica_solape_acierto_grados.png of
-run_PROMETEO.py aggregates all the patches of all the images (mean weighted by the number of
-patches); here the accuracy of each grade is first calculated in each image and then averaged
-between images, so that each image has the same weight.
-
-Accuracy (recall) of a grade in an image: patches with that true grade predicted with exactly that
-grade, over all the patches of that true grade (row of the true-predicted matrix, same criterion
-as grafica_solape_acierto_grados.png). An image only counts for a grade and an overlap if it has
-patches of that true grade at that overlap.
-
-With --pooled, the global recall of each grade is drawn instead, as in
-grafica_solape_acierto_grados.png of run_PROMETEO.py: exact hits of the grade summed over all the
-images over all the patches of that true grade summed over all the images (mean weighted by the
-number of patches of each image).
-
-Generates one figure per model with its datasets side by side ({model}_grados.png, or
-{model}_grados_global.png with --pooled), with the size and fonts of the pairs of
-utils/cohort_figures.py: centered titles and, instead of a legend, the name of each grade at the
-end of its line.
-
-Usage (from the root of the project):
-    python3 utils/grade_figures.py <resultados_analisis_folder> <output_folder> [--pooled]
-"""
 import argparse
 import json
 import math
@@ -54,10 +29,6 @@ MIN_LABEL_GAP = 0.07
 
 
 def load_grade_accuracy(results_dir):
-    """
-    Returns (number of images, overlaps, {grade: {overlap: [(hits, patches of the true grade) of
-    each image]}}) from the true-predicted matrix of each image in ficheroImagenes.json
-    """
     with open(os.path.join(results_dir, 'ficheroImagenes.json'), 'r', encoding='utf-8') as json_file:
         images_json = json.load(json_file)
     accuracy = {grade: defaultdict(list) for grade in GRADES}
@@ -75,16 +46,11 @@ def load_grade_accuracy(results_dir):
 
 
 def mean_per_image(counts_by_overlap, overlaps):
-    """Mean recall between images at each overlap (NaN if no image has that grade)"""
     return [sum(hits / total for hits, total in counts_by_overlap[o]) / len(counts_by_overlap[o])
             if counts_by_overlap[o] else float('nan') for o in overlaps]
 
 
 def pooled_recall(counts_by_overlap, overlaps):
-    """
-    Global recall at each overlap: hits of all the images over patches of the true grade of all
-    the images (same calculation as pachesAcceptedGleason / totalPatchesTrueGG in run_PROMETEO.py)
-    """
     curve = []
     for o in overlaps:
         total = sum(total for _, total in counts_by_overlap[o])
@@ -93,10 +59,6 @@ def pooled_recall(counts_by_overlap, overlaps):
 
 
 def spread_labels(positions, min_gap):
-    """
-    Vertically relocates the end-of-line labels so that they are at least min_gap from each
-    other, moving them as little as possible. positions: [(y, key)]; returns {key: label_y}
-    """
     ordered = sorted(positions)
     placed = []
     for y, key in ordered:
@@ -111,11 +73,6 @@ def spread_labels(positions, min_gap):
 
 
 def mark_not_applicable(ax, overlaps, curve):
-    """
-    Writes "N/A" (not applicable) at the overlaps where no image has patches of that true grade,
-    at the height of the last previous point with data, so that the break of the line is not
-    confused with a recall of 0
-    """
     last_value = None
     for overlap, value in zip(overlaps, curve):
         if not math.isnan(value):
@@ -126,10 +83,6 @@ def mark_not_applicable(ax, overlaps, curve):
 
 
 def draw_grade_axes(ax, results_dir, title, ylabel, aggregate):
-    """
-    Draws in ax the recall of each grade versus the overlap, with the label of the grade at the
-    end of its line. aggregate combines the results of the images (mean_per_image or pooled_recall)
-    """
     num_images, overlaps, accuracy = load_grade_accuracy(results_dir)
     missing = []
     line_ends = []
@@ -174,7 +127,6 @@ def draw_grade_axes(ax, results_dir, title, ylabel, aggregate):
 
 
 def plot_model_grades(model, datasets, output_path, aggregate, ylabel):
-    """One figure per model with the recall of each grade in its datasets, side by side"""
     ordered = sorted(datasets.items(), key=lambda item: dataset_sort_key(item[0]))
     fig, axes = plt.subplots(1, len(ordered), figsize=PAIR_FIGURE_SIZE, sharey=True, squeeze=False)
     for index, (ax, (dataset, results_dir)) in enumerate(zip(axes[0], ordered)):
@@ -186,10 +138,6 @@ def plot_model_grades(model, datasets, output_path, aggregate, ylabel):
 
 
 def generate_grade_figures(combinations, output_dir, pooled):
-    """
-    Generates in output_dir, for each model of combinations (see find_combinations), {model}_grados.png
-    (mean recall per image) or, with pooled, {model}_grados_global.png (weighted global recall)
-    """
     if pooled:
         aggregate, ylabel, suffix = pooled_recall, 'Pooled recall', 'grados_global'
     else:

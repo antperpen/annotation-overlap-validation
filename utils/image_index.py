@@ -1,18 +1,3 @@
-"""
-Read-only utility to find out which real file corresponds to each "Imagen N" shown in the
-results of run_PROMETEO.py (ficheroImagenes.json, figures, confusion matrices, etc).
-
-The numbering is set by run_PROMETEO.py by the position of each image in the list passed by
-test.py: "Imagen N" is the N-th row of the dataset CSV (VALME.csv or PANDA.csv) whose WSI and XML
-exist on disk, counting only those rows. This module reproduces the same filter as
-collect_images() in test.py to be able to look up that correspondence without running the
-validation again
-
-Usage as a script (from the root of the project):
-    python3 utils/image_index.py                 # all the images of all the datasets
-    python3 utils/image_index.py valme            # only the given dataset
-    python3 utils/image_index.py panda 7          # only Imagen 7 of that dataset
-"""
 import csv
 import os
 import sys
@@ -25,12 +10,6 @@ from config import AVAILABLE_DATASETS, DEV_IMAGE_LIST, DEV_NUM_IMAGES
 
 
 def list_dataset_images(dataset):
-    """
-    Returns, in order, the WSI paths of a dataset ('valme' or 'panda') as numbered by
-    run_PROMETEO.py ("Imagen 1", "Imagen 2", etc). Only the CSV rows whose WSI and XML exist on
-    disk count, and if DEV_IMAGE_LIST is active in config.py, only the first DEV_NUM_IMAGES rows
-    are considered (same filter as collect_images() in test.py)
-    """
     dataset_config = AVAILABLE_DATASETS[dataset]
     with open(os.path.join(_PROJECT_ROOT, dataset_config['csv']), 'r', encoding='utf-8') as csv_file:
         rows = [row for row in csv.reader(csv_file) if row and row[0].strip()]

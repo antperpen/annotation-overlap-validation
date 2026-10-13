@@ -14,3 +14,4 @@ InstalacionVSServer.txt
 /models/*
 __pycache__/
 *.pyc
+CLAUDE.md

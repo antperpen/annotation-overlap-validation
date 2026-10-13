@@ -1,8 +1,3 @@
-"""
-Figure of the accuracy versus the overlap percentage in the fixed cohort: the images with
-evaluable patches at every overlap. It is used by run_PROMETEO.py from the per-image results
-(imagesValue) of the validation
-"""
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -36,13 +31,6 @@ def pooled_accuracy(per_image, overlap):
     return sum(count[1] for count in counts) / num_patches if num_patches else float('nan')
 
 def plot_fixed_cohort_accuracy(images_value, title, output_path):
-    """
-    Figure of the accuracy versus the overlap in the fixed cohort. Since the same images are
-    always used, the evolution is not due to the images that are left without patches when the
-    threshold increases. It shows the median and the interquartile range of the per-image
-    accuracy, the pooled accuracy of the cohort and, as a reference, the pooled accuracy of all
-    the images
-    """
     overlaps, per_image, cohort = get_fixed_cohort(images_value)
     if not cohort:
         print("No image has evaluable patches at every overlap: {} is not generated".format(output_path))
@@ -70,7 +58,7 @@ def plot_fixed_cohort_accuracy(images_value, title, output_path):
     ax.yaxis.grid(True, linestyle='--', color='lightgray', alpha=0.9)
     ax.set_axisbelow(True)
     ax.spines[['top', 'right']].set_visible(False)
-    # Same font weight as the titles of the other figures of run_PROMETEO.py (normal, not bold)
+    # Same font weight as the titles of the other figures of run_validation.py (normal, not bold)
     ax.set_title('{}\nFixed cohort: {} of {} images with patches at every overlap'.format(title, len(cohort), len(per_image)),
                  fontsize=13, fontweight='normal', pad=14)
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol=2, frameon=False, fontsize=10)
