@@ -11,6 +11,7 @@ Validation framework for patch-based Gleason grading models on prostate whole-sl
 - [Requirements](#requirements)
 - [Dataset configuration](#dataset-configuration)
 - [Adding a model](#adding-a-model)
+- [Reproducing the results of the article](#reproducing-the-results-of-the-article)
 - [Usage](#usage)
 - [Outputs](#outputs)
 - [Other options](#other-options)
@@ -24,7 +25,7 @@ For each model and dataset, the validation pipeline performs the following steps
 
 1. **Extraction geometry.** The read layer, patch size and scanning stride of each dataset are chosen from the training resolution of the model (`TARGET_MPP`), so that WSIs scanned at different magnifications feed the network with the same physical scale.
 2. **Inference.** The WSI is scanned with a sliding window. Background patches are discarded with a white/black filter and a tissue score, and the remaining ones are classified by the model (Gleason grade 0, 3, 4 or 5). The predictions are stored as GeoJSON and cached on disk.
-3. **Annotated grid.** The XML annotations are split into a grid of cells aligned with the scanning stride. A cell is kept when its overlap with the annotated region reaches the current threshold. The grid of each threshold is cached as a `.pkl` file.
+3. **Annotated grid.** The XML annotations are split into a grid of cells aligned with the scanning stride. A cell is kept when its overlap with the annotated region reaches the current threshold. When a cell overlaps several annotated regions (duplicate cells), only the one with the highest overlap percentage with its region is kept, and the cell takes the Gleason grade of that region. The grid of each threshold is cached as a `.pkl` file.
 4. **Matching and metrics.** The predictions are matched with the annotated cells at every overlap threshold and the following metrics are computed per image and globally:
 
 | Metric | Definition |
@@ -46,6 +47,9 @@ For each model and dataset, the validation pipeline performs the following steps
 ├── config.py                       # Datasets, default model and execution options
 ├── requirements.txt                # Python dependencies
 ├── StudentModel_*.py               # Model definitions (examples of the interface a model must implement)
+├── PANDA_Radboud_mask.py           # Conversion of the PANDA masks to the XML annotation format
+├── Images/
+│   └── PANDA_test.csv              # List of the 300 PANDA images evaluated in the article
 ├── validation/
 │   └── patchExtractor_strong_valme.py  # Annotated grid, matching and metrics
 ├── utils/                          # Figures and auxiliary scripts that read the generated results
@@ -103,9 +107,46 @@ EXT/
 └── resultados_analisis/            # Results (generated)
 ```
 
+**Images evaluated in the article.** The list of the 300 PANDA images evaluated in the article is provided in `Images/PANDA_test.csv` (one image name per row). It can be used directly as the `csv` file of the `panda` entry.
+
 To use another dataset, create its folders and add a new entry to `AVAILABLE_DATASETS` with the same fields; then add its key to `DATASETS` in `test.py`.
 
-**Annotation format.** XML files with `Annotation` nodes whose `Text` region gives the Gleason pattern (`0`, `3`, `4` or `5`) and whose `Vertices` give the polygon (`rtPolyline`, `rtNegativePen`, `rtRectangle` or `rtEllipse`). Datasets with other annotation formats (e.g. masks) must be converted to this XML format.
+**Annotation format.** XML files with `Annotation` nodes whose `Text` region gives the Gleason pattern (`0`, `3`, `4` or `5`) and whose `Vertices` give the polygon (`rtPolyline`, `rtNegativePen`, `rtRectangle` or `rtEllipse`). Datasets with other annotation formats (e.g. masks) must be converted to this XML format. Only the tissue inside the annotated regions is evaluated: the tissue outside them is not assigned any reference label.
+
+**PANDA masks.** The PANDA images of the Radboud University Medical Center are annotated with segmentation masks, which are converted to the XML format above with `PANDA_Radboud_mask.py` using the following correspondence:
+
+| Mask label | Tissue | Gleason grade in the XML |
+|---|---|---|
+| 0 | Background (non-tissue) or unknown | Discarded |
+| 1 | Stroma | Discarded |
+| 2 | Healthy (benign) epithelium | `0` (benign) |
+| 3 | Cancerous epithelium (Gleason 3) | `3` |
+| 4 | Cancerous epithelium (Gleason 4) | `4` |
+| 5 | Cancerous epithelium (Gleason 5) | `5` |
+
+Before running the script, the PANDA masks (`<name>_mask.tiff`) must be converted to PNG images (`<name>_mask_use.png`) by extracting their lowest resolution layer. The script reads all its inputs from the folder where it is run:
+
+| Input | Description |
+|---|---|
+| `Images/PANDA_test.csv` | List of the images to convert (image name in the first column) |
+| `train.csv` | Metadata file of PANDA, used to keep only the images of the Radboud University Medical Center |
+| `train_images/<name>.tiff` | WSIs of PANDA |
+| `masks/PANDA_strong/<name>_mask_use.png` | Masks of PANDA converted to PNG |
+
+```bash
+python PANDA_Radboud_mask.py
+```
+
+For each image, the script extracts the contours of each mask label, scales them to layer 0 of the WSI and writes the following files:
+
+| File | Content |
+|---|---|
+| `output_xml/XML_mask/<name>.xml` | Annotation of the image in the XML format used by the validation |
+| `output_xml/XML_mask/<name>_mask_areas.png` | Mask with the extracted contours highlighted |
+| `output_xml/XML_mask/<name>_patches_grado_<grade>.png` | WSI with the annotated patches (overlap of at least 1%) of each Gleason grade |
+| `PANDA.csv` | List of the converted images of the Radboud University Medical Center, which can be used as the `csv` file of the `panda` entry |
+
+The `output_xml/XML_mask/` folder and the `PANDA.csv` file correspond to the `xml_dir` and `csv` fields of the `panda` entry of `AVAILABLE_DATASETS`.
 
 **Generated files.** The prediction cache is written to `EXT/Predicciones_Guardadas/` and the annotated grids (`wsi_patch_map_*.pkl`) to the parent folder of each `xml_dir` (e.g. `EXT/VALME/`). Later runs reuse them: delete them to force a new inference or a new partition.
 
@@ -174,6 +215,19 @@ AVAILABLE_MODELS = {
 ```python
 MODELS = ['Densenet121_FS', 'Resnext101', 'Densenet121_TS_simclr', 'MyNet']
 ```
+
+## Reproducing the results of the article
+
+The article evaluates three models on two datasets. Their availability is the following:
+
+| Resource | Availability |
+|---|---|
+| ResNeXt101 model | Public. The pre-trained weights (ResNeXt 101 32x8d) can be downloaded from the [prostate-gleason-dataset](https://github.com/MicheleDamian/prostate-gleason-dataset) repository, which also provides the lists of images used for its training and testing |
+| DenseNet121 FS and DenseNet121 TS-SimCLR models | Not public. They were developed in a previous work and their weights are not distributed |
+| PANDA dataset | Public. The WSIs and the segmentation masks can be downloaded from the [PANDA challenge page on Kaggle](https://www.kaggle.com/c/prostate-cancer-grade-assessment/data) after accepting the rules of the competition. Only the images of the Radboud University Medical Center are used, and the 300 images evaluated in the article are listed in `Images/PANDA_test.csv` |
+| Valme dataset | Not public |
+
+Therefore, the results of the article that can be reproduced with public resources are those obtained with ResNeXt101 on the PANDA dataset. To reproduce them, download the weights of the model as `models/resnext-101-32x8d.pth` (the path expected by `StudentModel_REX.py`), convert the PANDA masks to the XML format as described in [Dataset configuration](#dataset-configuration), use `Images/PANDA_test.csv` as the image list of the `panda` entry and run the validation with `MODELS = ['Resnext101']` and `DATASETS = ['panda']`.
 
 ## Usage
 
